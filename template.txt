@@ -1,0 +1,6 @@
+Dear ${firstname},
+
+You scored ${percent} on the test.
+
+Best wishes,
+John
