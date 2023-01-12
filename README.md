@@ -25,11 +25,15 @@ I assume that at least one of the columns in your CSV file has a name that begin
 
 I assume that you have a "template" file. This is an ordinary text file that can contain placeholders that will be instantiated with data from the CSV file. For instance, if you write `${firstname}` in the template file, it will be replaced with data from the column called "firstname" in your CSV file. (If such a column doesn't exist, no replacement will occur.)
 
+## Building the tool
+
+Run `make`.
+
 ## What the tool does
 
 You launch the tool with a command like:
 
-        ./mailer -template template.txt -csv database.csv -subject "Results"
+    ./mailer -template template.txt -csv database.csv -subject "Results"
 		
 1. The tool creates a new file called `database.csv.tmp` in which `""` has been globally replaced with `` ` ``. This makes a Numbers-generated CSV file easier to parse (see note above).
  
@@ -38,7 +42,9 @@ You launch the tool with a command like:
 3. The tool creates one Applescript per row of `database.csv.tmp`. Each Applescript is generated such that when it is executed, a new email will be created in Apple Mail, all populated according to `template.txt` and instantiated with the data in the current row. The email won't actually be sent, but it will be all ready for you to just click on "send".
  
 4. The tool will, by default, execute all the Applescripts it generates. Alternatively, you can set the `-dryrun` flag so that they are not executed, and instead execute the scripts later yourself, e.g. by running `osascript name_of_script.scpt`.
- 
+
+5. The tool will, by default, process all the rows in the CSV file, but if you set the `-onlyfirstrow` flag, it will stop after the first (non-header) row. This can be useful when testing.
+
 There are additional command-line options to configure the sender's name and email address.
 
 ## Feature wishlist

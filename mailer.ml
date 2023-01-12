@@ -73,15 +73,17 @@ let replace_in_file f from into =
   let ic = open_in f in
   let out_file = f ^ ".tmp" in
   let oc = open_out out_file in
-  try
-    while true do
-      let s = input_line ic in
-      let s = Str.global_replace (Str.regexp_string from) into s in
-      output_string oc (s ^ "\n")
-    done     
-  with End_of_file -> 
-    close_out oc;
-    out_file
+  begin try
+      while true do
+        let s = input_line ic in
+        let s = Str.global_replace (Str.regexp_string from) into s in
+        output_string oc (s ^ "\n")
+      done     
+    with
+      End_of_file -> close_out oc
+  end;
+  out_file
+  
           
 let main () =
   Arg.parse args_spec (fun _ -> ()) usage;
@@ -100,7 +102,7 @@ let main () =
   );
   let csv_file_mod =
     (* Replace two consecutive double-quotes ("") with a single backtick (`) in CSV file.
-       This is because Apple Numbers converts (") into ("") when producing CSV files. *)
+       This is because of how Apple Numbers exports CSV files. *)
     replace_in_file (the !csv_file) "\"\"" "`"
   in
   let csv_chan = open_in csv_file_mod in
@@ -190,7 +192,7 @@ let main () =
   in
   
   if !only_first_row then
-    do_row (List.hd rows)
+    do_row 0 (List.hd rows)
   else
     List.iteri do_row rows;
   
