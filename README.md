@@ -31,7 +31,7 @@ You launch the tool with a command like:
 
         ./mailer -template template.txt -csv database.csv -subject "Results"
 		
-1. The tool creates a new file called `database.csv.tmp` in which `""` has been globally replaced with `\``. This makes a Numbers-generated CSV file easier to parse (see note above).
+1. The tool creates a new file called `database.csv.tmp` in which `""` has been globally replaced with `` ` ``. This makes a Numbers-generated CSV file easier to parse (see note above).
  
 2. The tool creates a directory called `out-YYYYMMDD-hhmmss` to contain the Applescripts that it is about to generate. The use of a timestamp means that you don't have to think about where you want to put the output from each run of the tool.
  
