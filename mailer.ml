@@ -39,6 +39,8 @@ let default_sender_name = "John Wickerson"
 let sender_name : string ref = ref default_sender_name
 let default_sender_email = "j.wickerson@imperial.ac.uk"
 let sender_email : string ref = ref default_sender_email
+let cc_list : string list ref = ref []
+let bcc_list : string list ref = ref []
 let dry_run : bool ref = ref false
 let only_first_row : bool ref = ref false
                                
@@ -54,6 +56,10 @@ let args_spec =
      sprintf "sender name (default is \"%s\")" default_sender_name);
     ("-senderemail", Arg.Set_string sender_email,
      sprintf "sender email (default is \"%s\")" default_sender_email);
+    ("-cc", Arg.String (fun s -> cc_list := s :: !cc_list),
+     "Add a cc recipient (can be used multiple times)");
+    ("-bcc", Arg.String (fun s -> bcc_list := s :: !bcc_list),
+     "Add a bcc recipient (can be used multiple times)");
     ("-dryrun", Arg.Set dry_run,
      "Generate the Applescripts but don't actually execute them (default is false)");
     ("-onlyfirstrow", Arg.Set only_first_row,
@@ -181,6 +187,14 @@ let main () =
         fprintf ocf "    make new to recipient at end of to recipients with ";
         fprintf ocf "properties {address:\"%s\"}\n" recipient_email;
       ) recipient_emails;
+    List.iter (fun cc ->
+        fprintf ocf "    make new cc recipient at end of cc recipients with ";
+        fprintf ocf "properties {address:\"%s\"}\n" cc;
+      ) !cc_list;
+    List.iter (fun bcc ->
+        fprintf ocf "    make new bcc recipient at end of bcc recipients with ";
+        fprintf ocf "properties {address:\"%s\"}\n" bcc;
+      ) !bcc_list;
     fprintf ocf "  end tell\n";
     (*fprintf ocf "activate\n";*)
     fprintf ocf "end tell\n";
