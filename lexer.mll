@@ -24,6 +24,7 @@ and lex_csv = parse
 | eof                          { Parser.EOF }  
 | ","                          { Parser.COMMA }
 | "\n"                         { Parser.CRLF }
+| "\r\n"                       { Parser.CRLF }
 | '{' ([^ '}']* as x) '}'      { Parser.STRING x }
 | '"' ([^ '"']* as x) '"'      { Parser.STRING x }
 | _ as x                       { Parser.CHAR x }

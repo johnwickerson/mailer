@@ -1,3 +1,30 @@
+(*
+MIT License
+
+Copyright (c) 2022 by John Wickerson.
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*)
+
+(** A mail-merge tool for Mac OS X *)
+
 open Format
 
 let the : 'a option -> 'a =
@@ -7,16 +34,30 @@ let the : 'a option -> 'a =
    
 let template_file : string option ref = ref None
 let csv_file : string option ref = ref None
-let output_dir : string ref = ref "."
-                 
+let email_subject : string ref = ref ""
+let default_sender_name = "John Wickerson"
+let sender_name : string ref = ref default_sender_name
+let default_sender_email = "j.wickerson@imperial.ac.uk"
+let sender_email : string ref = ref default_sender_email
+let dry_run : bool ref = ref false
+let only_first_row : bool ref = ref false
+                               
 let args_spec =
   [
     ("-template", Arg.String (fun s -> template_file := Some s),
-     "text file containing email template");
+     "text file containing email body (required)");
     ("-csv", Arg.String (fun s -> csv_file := Some s),
-     "CSV file containing data to be mail-merged");
-    ("-o", Arg.String (fun s -> output_dir := s),
-     "Output directory for AppleScript files; default is current directory");
+     "CSV file containing data to be mail-merged (required)");
+    ("-subject", Arg.Set_string email_subject,
+     "email subject (default is blank)");
+    ("-sendername", Arg.Set_string sender_name,
+     sprintf "sender name (default is \"%s\")" default_sender_name);
+    ("-senderemail", Arg.Set_string sender_email,
+     sprintf "sender email (default is \"%s\")" default_sender_email);
+    ("-dryrun", Arg.Set dry_run,
+     "Generate the Applescripts but don't actually execute them (default is false)");
+    ("-onlyfirstrow", Arg.Set only_first_row,
+     "Only process the first row of the CSV file, useful when testing (default is false)");
   ]
 
 let usage = "Usage: mailer [options]\nOptions are:"
@@ -27,66 +68,131 @@ let tryparse parse lex buf =
   with
     Parsing.Parse_error | Failure _ ->
        failwith (sprintf "Parse error at character %d.\n" (Lexing.lexeme_start buf))
-  
+
+let replace_in_file f from into =
+  let ic = open_in f in
+  let out_file = f ^ ".tmp" in
+  let oc = open_out out_file in
+  try
+    while true do
+      let s = input_line ic in
+      let s = Str.global_replace (Str.regexp_string from) into s in
+      output_string oc (s ^ "\n")
+    done     
+  with End_of_file -> 
+    close_out oc;
+    out_file
           
 let main () =
   Arg.parse args_spec (fun _ -> ()) usage;
   
-  if !template_file = None then
-    failwith "Template file not provided.";    
-  printf "Template file is %s.\n" (the !template_file);
+  if !template_file = None then (
+    Arg.usage args_spec usage;
+    failwith "Template file not provided.";
+  );
   let template_chan = open_in (the !template_file) in
-  let template_buff = Lexing.from_channel template_chan in
-  let template = tryparse Parser.templatetext Lexer.lex_template template_buff in
+  let template_buf = Lexing.from_channel template_chan in
+  let template = tryparse Parser.templatetext Lexer.lex_template template_buf in
   
-  (*
-  List.iter (fun (b,s) ->
-      if b then printf "Normal(%s)\n" s else printf "Macro(%s)\n" s)
-    template;
-   *)
+  if !csv_file = None then (
+    Arg.usage args_spec usage;
+    failwith "CSV file not provided.";
+  );
+  let csv_file_mod =
+    (* Replace two consecutive double-quotes ("") with a single backtick (`) in CSV file.
+       This is because Apple Numbers converts (") into ("") when producing CSV files. *)
+    replace_in_file (the !csv_file) "\"\"" "`"
+  in
+  let csv_chan = open_in csv_file_mod in
+  let csv_buf = Lexing.from_channel csv_chan in
+  let parsed_csv = tryparse Parser.csvtext Lexer.lex_csv csv_buf in
 
-  if !csv_file = None then
-    failwith "CSV file not provided.";  
-  printf "CSV file is %s.\n" (the !csv_file);
-  let csv_chan = open_in (the !csv_file) in
-  let csv_buff = Lexing.from_channel csv_chan in
-  let parsed_csv = tryparse Parser.csvtext Lexer.lex_csv csv_buff in
-
-  (* List.iter (fun row ->
-      List.iter (fun entry ->
-          printf "%s," entry
-    ) row; printf "\n") parsed_csv;
-   *)
-
+  (* First row of CSV file is assumed to contain column headings. *)
   let headings, rows = match parsed_csv with
     | [] -> failwith "Expected at least one row in CSV file."
     | h :: t -> (h, t)
   in
 
-  let rec lookup s = function
-    | [], _ -> false, s
-    | _, [] -> true, ""
-    | h :: headings, e :: row ->
-       if h = s then true, e else lookup s (headings, row)
+  (* Find the entry for the column named `s` in the given `row`. *)
+  let lookup s row = 
+    let rec lookup s = function
+      | [], _ -> false, s
+      | _, [] -> true, ""
+      | h :: headings, e :: row ->
+         if h = s then true, e else lookup s (headings, row)
+    in
+    lookup s (headings, row)
+  in
+
+  (* Return a list of all the email addresses in the given `row`. These are identified
+     by columns that have a name beginning with "email". *)
+  let lookup_emails row =
+    let rec lookup_emails = function
+      | [], _ -> []
+      | _, [] -> []
+      | h :: headings, e :: row ->
+         (if Str.string_match (Str.regexp_string "email") h 0 then [e] else []) @
+           lookup_emails (headings, row)
+    in
+    lookup_emails (headings, row)
   in
 
   let instantiate row = function
     | true, s -> true, s
-    | false, s -> lookup s (headings, row)    
+    | false, s -> lookup s row    
   in
 
-  let print_template_item = function
-    | true, s -> printf "%s" s
-    | false, s -> printf "${%s}" s
+  let template_item_to_string oc = function
+    | true, s -> fprintf oc "%s" s
+    | false, s -> fprintf oc "${%s}" s
+  in
+
+  (* Produce a timestamp of the form "YYYYMMDD-HHMMSS" *)
+  let timestamp =
+    let t = Unix.gmtime (Unix.time ()) in
+    sprintf "%04d%02d%02d-%02d%02d%02d"
+      (1900 + t.Unix.tm_year) (1 + t.Unix.tm_mon) t.Unix.tm_mday
+      t.Unix.tm_hour t.Unix.tm_min t.Unix.tm_sec
+  in
+
+  (* Make a timestamped output directory to hold the generated applescripts. *)
+  let output_dir = "out-" ^ timestamp in
+  Sys.mkdir output_dir 0o755;
+  
+  let do_row i row =
+    let scpt_file = Filename.concat output_dir (sprintf "mailer_%d.scpt" i) in
+    let oc = open_out scpt_file in
+    let ocf = formatter_of_out_channel oc in
+    let instance = List.map (instantiate row) template in
+    let recipient_emails = lookup_emails row in
+    
+    fprintf ocf "tell application \"Mail\"\n";
+    fprintf ocf "  set newMessage to make new outgoing message with properties {";
+    fprintf ocf "sender:\"%s <%s>\", " !sender_name !sender_email;
+    fprintf ocf "subject:\"%s\", " !email_subject;
+    fprintf ocf "content:\"";
+    List.iter (template_item_to_string ocf) instance;
+    fprintf ocf "  \"}\n";
+    fprintf ocf "  tell newMessage\n";
+    fprintf ocf "    set visible to true\n";
+    List.iter (fun recipient_email ->
+        fprintf ocf "    make new to recipient at end of to recipients with ";
+        fprintf ocf "properties {address:\"%s\"}\n" recipient_email;
+      ) recipient_emails;
+    fprintf ocf "  end tell\n";
+    (*fprintf ocf "activate\n";*)
+    fprintf ocf "end tell\n";
+    close_out oc;
+    
+    (* Run the generated applescript. *)
+    if not !dry_run then
+      let _ = Sys.command (sprintf "osascript %s" scpt_file) in ()
   in
   
-  List.iter (fun row ->
-      let instance = List.map (instantiate row) template in
-      printf "tell application \"Mail\"\n";
-      printf "set newMessage to make new outgoing message with properties {sender:\"John Wickerson <j.wickerson@imperial.ac.uk>\"";
-      List.iter print_template_item instance;
-      printf "\n"
-    ) rows;
+  if !only_first_row then
+    do_row (List.hd rows)
+  else
+    List.iteri do_row rows;
   
   printf "Finished.\n"
 
