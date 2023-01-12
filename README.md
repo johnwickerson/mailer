@@ -1,10 +1,17 @@
 # A mail-merge tool for Mac OS X
 
-This is a tool that I use for sending out personalised emails en masse, e.g. giving feedback to a class of students. I'm making it available in case it is useful for others too.
+This is a tool that I use to send out personalised emails _en masse_, e.g. giving marks and feedback to a class of students. I'm making it available in case it is useful for others too.
+
+## Requirements
+
+- Mac OS X (tested on Ventura 13.0.1)
+- OCaml (tested on version 4.13.1)
+- Apple Mail
+- Apple Numbers
 
 ## Assumptions
 
-I assumee you have a CSV file generated from an Apple Numbers spreadsheet. I mention Apple Numbers because CSV is a very unstandardised format, and my tool is quite specialised for the dialect of CSV that Apple Numbers exports. Other CSV files might or might not work. In particular:
+I assume you have a CSV file generated from an Apple Numbers spreadsheet. I mention Apple Numbers because CSV is a surprisingly unstandardised format, and my tool is quite specialised for the dialect of CSV that Apple Numbers exports. Other CSV files might or might not work. In particular:
 
 - values are comma-separated (as you would expect),
 	
@@ -16,7 +23,7 @@ I assumee you have a CSV file generated from an Apple Numbers spreadsheet. I men
 	
 I assume that at least one of the columns in your CSV file has a name that begins with "email". This column contains the recipients of your emails. If you have multiple such columns (e.g. "email 1" and "email 2") then your emails will have multiple recipients.
 
-I assume that you have a "template" file. This is an ordinary text file that can contain placeholders that will be instantiated with data from the CSV file. For instance, if you write ${firstname} in the template file, it will be replaced with data from the column called "firstname" in your CSV file. (If such a column doesn't exist, no replacement will occur.)
+I assume that you have a "template" file. This is an ordinary text file that can contain placeholders that will be instantiated with data from the CSV file. For instance, if you write `${firstname}` in the template file, it will be replaced with data from the column called "firstname" in your CSV file. (If such a column doesn't exist, no replacement will occur.)
 
 ## What the tool does
 
@@ -24,7 +31,7 @@ You launch the tool with a command like:
 
         ./mailer -template template.txt -csv database.csv -subject "Results"
 		
-1. The tool creates a new file called `database.csv.tmp` in which `""` has been globally replaced with `` `. This makes a Numbers-generated CSV file easier to parse (see note above).
+1. The tool creates a new file called `database.csv.tmp` in which `""` has been globally replaced with `\``. This makes a Numbers-generated CSV file easier to parse (see note above).
  
 2. The tool creates a directory called `out-YYYYMMDD-hhmmss` to contain the Applescripts that it is about to generate. The use of a timestamp means that you don't have to think about where you want to put the output from each run of the tool.
  
