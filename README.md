@@ -33,6 +33,8 @@ This repo includes a sample template file and a sample CSV file. To use them to 
 
     ./mailer -template template.txt -csv database.csv -subject "Results" -cc "b.jones@gmail.com"
 
+You can also run `make install` to copy the executable into `~/bin`. Then, if `~/bin` is in your `$PATH`, you can run `csv_iterator` from any directory.
+
 ## What the tool does
 		
 1. The tool creates a new file called `database.csv.tmp` in which `""` has been globally replaced with `` ` ``. This makes a Numbers-generated CSV file easier to parse (see note above).

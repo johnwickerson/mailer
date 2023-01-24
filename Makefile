@@ -5,6 +5,12 @@ all: parser.mly lexer.mll mailer.ml
 	ocamllex lexer.mll
 	ocamlc unix.cma str.cma parser.mli parser.ml lexer.ml mailer.ml -o ${EXECUTABLE}
 
+install:
+	mv ${EXECUTABLE} ~/bin/${EXECUTABLE}
+
+uninstall:
+	rm -f ~/bin/${EXECUTABLE}
+
 clean:
 	rm -f *.cmo
 	rm -f *.cmi
