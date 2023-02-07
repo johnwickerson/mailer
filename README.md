@@ -47,10 +47,10 @@ You can also run `make install` to copy the executable into `~/bin`. Then, if `~
 
 5. The tool will, by default, process all the rows in the CSV file, but if you set the `-onlyfirstrow` flag, it will stop after the first (non-header) row. This can be useful when testing.
 
+6. Any columns that begin with "attach" are interpreted as files to attach to the email. These should be full file paths, with colons as directory separators, such as "Macintosh HD:Users:jpw48:teaching:comments_smith.txt".
+
 There are additional command-line options to configure the sender's name and email address, and to add recipients in cc or bcc.
 
 ## Feature wishlist
 
 - Conditionals in template files. E.g. only include a piece of text if a specified column contains "true".
-
-- Email attachments.

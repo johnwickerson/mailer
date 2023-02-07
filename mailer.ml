@@ -145,6 +145,20 @@ let main () =
     lookup_emails (headings, row)
   in
 
+  (* Return a list of all the file attachments in the given `row`. These are identified
+     by columns that have a name beginning with "attach". An example of a valid file
+     path is "Macintosh HD:Users:jpw48:git:langproc-2019-private:lab:scripts:a09.txt". *)
+  let lookup_attachments row =
+    let rec lookup_attachments = function
+      | [], _ -> []
+      | _, [] -> []
+      | h :: headings, e :: row ->
+         (if Str.string_match (Str.regexp_string "attach") h 0 then [e] else []) @
+           lookup_attachments (headings, row)
+    in
+    lookup_attachments (headings, row)
+  in
+
   let instantiate row = function
     | true, s -> true, s
     | false, s -> lookup s row    
@@ -173,6 +187,7 @@ let main () =
     let ocf = formatter_of_out_channel oc in
     let instance = List.map (instantiate row) template in
     let recipient_emails = lookup_emails row in
+    let attachments = lookup_attachments row in
     
     fprintf ocf "tell application \"Mail\"\n";
     fprintf ocf "  set newMessage to make new outgoing message with properties {";
@@ -195,6 +210,13 @@ let main () =
         fprintf ocf "    make new bcc recipient at end of bcc recipients with ";
         fprintf ocf "properties {address:\"%s\"}\n" bcc;
       ) !bcc_list;
+
+    List.iter (fun a ->
+        fprintf ocf "    make new attachment with ";
+        fprintf ocf "      properties {file name:\"%s\" as alias}" a;
+        fprintf ocf "      at after the last word of the last paragraph\n")
+      attachments;
+    
     fprintf ocf "  end tell\n";
     (*fprintf ocf "activate\n";*)
     fprintf ocf "end tell\n";
