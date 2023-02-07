@@ -123,41 +123,35 @@ let main () =
 
   (* Find the entry for the column named `s` in the given `row`. *)
   let lookup s row = 
-    let rec lookup s = function
+    let rec lookup = function
       | [], _ -> false, s
       | _, [] -> true, ""
       | h :: headings, e :: row ->
-         if h = s then true, e else lookup s (headings, row)
+         if h = s then true, e else lookup (headings, row)
     in
-    lookup s (headings, row)
+    lookup (headings, row)
+  in
+
+  (* Find the entries for all columns with a name beginning with `s` in the given `row`. *)
+  let lookup_beginning s row = 
+    let rec lookup_beginning = function
+      | [], _ -> []
+      | _, [] -> []
+      | h :: headings, e :: row ->
+         (if Str.string_match (Str.regexp_string s) h 0 then [e] else []) @
+           lookup_beginning (headings, row)
+    in
+    lookup_beginning (headings, row)
   in
 
   (* Return a list of all the email addresses in the given `row`. These are identified
      by columns that have a name beginning with "email". *)
-  let lookup_emails row =
-    let rec lookup_emails = function
-      | [], _ -> []
-      | _, [] -> []
-      | h :: headings, e :: row ->
-         (if Str.string_match (Str.regexp_string "email") h 0 then [e] else []) @
-           lookup_emails (headings, row)
-    in
-    lookup_emails (headings, row)
-  in
+  let lookup_emails = lookup_beginning "email" in
 
   (* Return a list of all the file attachments in the given `row`. These are identified
      by columns that have a name beginning with "attach". An example of a valid file
      path is "Macintosh HD:Users:jpw48:teaching:comments_smith.txt". *)
-  let lookup_attachments row =
-    let rec lookup_attachments = function
-      | [], _ -> []
-      | _, [] -> []
-      | h :: headings, e :: row ->
-         (if Str.string_match (Str.regexp_string "attach") h 0 then [e] else []) @
-           lookup_attachments (headings, row)
-    in
-    lookup_attachments (headings, row)
-  in
+  let lookup_attachments = lookup_beginning "attach" in
 
   let instantiate row = function
     | true, s -> true, s
