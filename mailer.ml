@@ -147,7 +147,7 @@ let main () =
 
   (* Return a list of all the file attachments in the given `row`. These are identified
      by columns that have a name beginning with "attach". An example of a valid file
-     path is "Macintosh HD:Users:jpw48:git:langproc-2019-private:lab:scripts:a09.txt". *)
+     path is "Macintosh HD:Users:jpw48:teaching:comments_smith.txt". *)
   let lookup_attachments row =
     let rec lookup_attachments = function
       | [], _ -> []
