@@ -31,6 +31,10 @@ let the : 'a option -> 'a =
   function
   | Some x -> x
   | None -> failwith "Found None, expected Some!"
+
+let rec firstn n = function
+  | [] -> []
+  | x :: xs -> if n = 0 then [] else x :: firstn (n-1) xs
    
 let template_file : string option ref = ref None
 let csv_file : string option ref = ref None
@@ -41,8 +45,9 @@ let default_sender_email = "j.wickerson@imperial.ac.uk"
 let sender_email : string ref = ref default_sender_email
 let cc_list : string list ref = ref []
 let bcc_list : string list ref = ref []
+let attachment_columns : string list ref = ref []
 let dry_run : bool ref = ref false
-let only_first_row : bool ref = ref false
+let only_first : int ref = ref (-1)
                                
 let args_spec =
   [
@@ -60,10 +65,12 @@ let args_spec =
      "Add a cc recipient (can be used multiple times)");
     ("-bcc", Arg.String (fun s -> bcc_list := s :: !bcc_list),
      "Add a bcc recipient (can be used multiple times)");
+    ("-attach", Arg.String (fun s -> attachment_columns := s :: !attachment_columns),
+     "Attach the file in the given column (can be used multiple times)");
     ("-dryrun", Arg.Set dry_run,
      "Generate the Applescripts but don't actually execute them (default is false)");
-    ("-onlyfirstrow", Arg.Set only_first_row,
-     "Only process the first row of the CSV file, useful when testing (default is false)");
+    ("-onlyfirst", Arg.Set_int only_first,
+     "Only process the first N rows of the CSV file, useful when testing (default is to process all rows)");
   ]
 
 let usage = "Usage: mailer [options]\nOptions are:"
@@ -148,11 +155,6 @@ let main () =
      by columns that have a name beginning with "email". *)
   let lookup_emails = lookup_beginning "email" in
 
-  (* Return a list of all the file attachments in the given `row`. These are identified
-     by columns that have a name beginning with "attach". An example of a valid file
-     path is "Macintosh HD:Users:jpw48:teaching:comments_smith.txt". *)
-  let lookup_attachments = lookup_beginning "attach" in
-
   let instantiate row = function
     | true, s -> true, s
     | false, s -> lookup s row    
@@ -181,7 +183,6 @@ let main () =
     let ocf = formatter_of_out_channel oc in
     let instance = List.map (instantiate row) template in
     let recipient_emails = lookup_emails row in
-    let attachments = lookup_attachments row in
     
     fprintf ocf "tell application \"Mail\"\n";
     fprintf ocf "  set newMessage to make new outgoing message with properties {";
@@ -205,11 +206,14 @@ let main () =
         fprintf ocf "properties {address:\"%s\"}\n" bcc;
       ) !bcc_list;
 
-    List.iter (fun a ->
-        fprintf ocf "    make new attachment with ";
-        fprintf ocf "      properties {file name:\"%s\" as alias}" a;
-        fprintf ocf "      at after the last word of the last paragraph\n")
-      attachments;
+    List.iter (fun attachment_column ->
+        let _, attachment_path = lookup attachment_column row in
+        if attachment_path <> "" then (
+          fprintf ocf "    make new attachment with ";
+          fprintf ocf "      properties {file name:\"%s\" as alias}" attachment_path;
+          fprintf ocf "      at after the last word of the last paragraph\n")
+      )
+      !attachment_columns;
     
     fprintf ocf "  end tell\n";
     (*fprintf ocf "activate\n";*)
@@ -221,10 +225,10 @@ let main () =
       let _ = Sys.command (sprintf "osascript %s" scpt_file) in ()
   in
   
-  if !only_first_row then
-    do_row 0 (List.hd rows)
+  if !only_first = -1 then
+    List.iteri do_row rows
   else
-    List.iteri do_row rows;
+    List.iteri do_row (firstn !only_first rows);
   
   printf "Finished.\n"
 

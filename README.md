@@ -45,9 +45,9 @@ You can also run `make install` to copy the executable into `~/bin`. Then, if `~
  
 4. The tool will, by default, execute all the Applescripts it generates. Alternatively, you can set the `-dryrun` flag so that they are not executed, and instead execute the scripts later yourself, e.g. by running `osascript name_of_script.scpt`.
 
-5. The tool will, by default, process all the rows in the CSV file, but if you set the `-onlyfirstrow` flag, it will stop after the first (non-header) row. This can be useful when testing.
+5. The tool will, by default, process all the rows in the CSV file, but if you add `-onlyfirst <N>` flag, it will stop after the first `N` (non-header) rows. This can be useful when testing.
 
-6. Any columns that begin with "attach" are interpreted as files to attach to the email. These should be full file paths, with colons as directory separators, such as "Macintosh HD:Users:jpw48:teaching:comments_smith.txt".
+6. If you add `-attach <column name>` then the given column name will be interpreted as holding paths to files that should be attached to the emails. These should be full file paths, with colons as directory separators, such as "Macintosh HD:Users:jpw48:teaching:comments_smith.txt".
 
 There are additional command-line options to configure the sender's name and email address, and to add recipients in cc or bcc.
 
