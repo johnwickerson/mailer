@@ -54,3 +54,7 @@ There are additional command-line options to configure the sender's name and ema
 ## Feature wishlist
 
 - Conditionals in template files. E.g. only include a piece of text if a specified column contains "true".
+
+## Known issues
+
+- Seems to break if an entry in the spreadsheet begins or ends with `"`. In this case, globally replacing `""` with `` ` `` is a bad idea. Will have a think about how to fix, but in the meantime, just avoid cells beginning or ending with `"`.
