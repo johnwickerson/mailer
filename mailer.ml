@@ -161,7 +161,7 @@ let main () =
   in
 
   let template_item_to_string oc = function
-    | true, s -> fprintf oc "%s" s
+    | true, s -> fprintf oc "%s" (String.escaped s)
     | false, s -> fprintf oc "${%s}" s
   in
 
@@ -198,12 +198,16 @@ let main () =
         fprintf ocf "properties {address:\"%s\"}\n" recipient_email;
       ) recipient_emails;
     List.iter (fun cc ->
-        fprintf ocf "    make new cc recipient at end of cc recipients with ";
-        fprintf ocf "properties {address:\"%s\"}\n" cc;
+        let cc = if String.contains cc '@' then cc else snd (lookup cc row) in
+        if cc <> "" then (
+          fprintf ocf "    make new cc recipient at end of cc recipients with ";
+          fprintf ocf "properties {address:\"%s\"}\n" cc)
       ) !cc_list;
     List.iter (fun bcc ->
-        fprintf ocf "    make new bcc recipient at end of bcc recipients with ";
-        fprintf ocf "properties {address:\"%s\"}\n" bcc;
+        let bcc = if String.contains bcc '@' then bcc else snd (lookup bcc row) in
+        if bcc <> "" then (
+          fprintf ocf "    make new bcc recipient at end of bcc recipients with ";
+          fprintf ocf "properties {address:\"%s\"}\n" bcc;)
       ) !bcc_list;
 
     List.iter (fun attachment_column ->

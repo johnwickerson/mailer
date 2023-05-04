@@ -49,7 +49,9 @@ You can also run `make install` to copy the executable into `~/bin`. Then, if `~
 
 6. If you add `-attach <column name>` then the given column name will be interpreted as holding paths to files that should be attached to the emails. These should be full file paths, with colons as directory separators, such as "Macintosh HD:Users:jpw48:teaching:comments_smith.txt".
 
-There are additional command-line options to configure the sender's name and email address, and to add recipients in cc or bcc.
+7. If you add `-cc <email address>` then the given email address will be cc'ed to every mail. If you add `-cc <column name>` then the given column name will be interpreted as holding an email address that should be cc'ed. The tool distinguishes between these two alternatives by the presence of the `@` character in the argument. Multiple `-cc` options can be provided. The `-bcc` option works similarly.
+
+There are additional command-line options to configure the sender's name and email address.
 
 ## Feature wishlist
 
