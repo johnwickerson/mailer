@@ -213,21 +213,27 @@ let main () =
     List.iter (fun attachment_column ->
         let _, attachment_path = lookup attachment_column row in
         if attachment_path <> "" then (
-          fprintf ocf "    make new attachment with ";
-          fprintf ocf "      properties {file name:\"%s\" as alias}" attachment_path;
-          fprintf ocf "      at after the last word of the last paragraph\n")
+          fprintf ocf "    set myAttachment to \"%s\" as POSIX file\n" attachment_path;
+          fprintf ocf "    if kind of (info for myAttachment) is \"folder\" then\n";
+          fprintf ocf "      error \"Attaching a folder isn't allowed.\"\n";
+          fprintf ocf "    else\n";
+          fprintf ocf "      make new attachment with properties {file name: myAttachment} ";
+          fprintf ocf "at after the last word of the last paragraph\n";
+          fprintf ocf "    end if\n"
+        )
       )
       !attachment_columns;
     
     fprintf ocf "  end tell\n";
     (*fprintf ocf "activate\n";*)
     fprintf ocf "end tell\n";
-    fprintf ocf "return\n";
+    fprintf ocf "return \"%s: success.\"\n" scpt_file;
     close_out oc;
     
     (* Run the generated applescript. *)
-    if not !dry_run then
-      let _ = Sys.command (sprintf "osascript %s" scpt_file) in ()
+    if not !dry_run then 
+      let _ = Sys.command (sprintf "osascript %s" scpt_file) in
+      flush stdout
   in
   
   if !only_first = -1 then

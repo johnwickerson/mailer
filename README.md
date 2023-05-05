@@ -47,7 +47,7 @@ You can also run `make install` to copy the executable into `~/bin`. Then, if `~
 
 5. The tool will, by default, process all the rows in the CSV file, but if you add `-onlyfirst <N>` flag, it will stop after the first `N` (non-header) rows. This can be useful when testing.
 
-6. If you add `-attach <column name>` then the given column name will be interpreted as holding paths to files that should be attached to the emails. These should be full file paths, with colons as directory separators, such as "Macintosh HD:Users:jpw48:teaching:comments_smith.txt".
+6. If you add `-attach <column name>` then the given column name will be interpreted as holding paths to files that should be attached to the emails. These should be full POSIX paths, such as "/Users/jpw48/teaching/comments_smith.txt".
 
 7. If you add `-cc <email address>` then the given email address will be cc'ed to every mail. If you add `-cc <column name>` then the given column name will be interpreted as holding an email address that should be cc'ed. The tool distinguishes between these two alternatives by the presence of the `@` character in the argument. Multiple `-cc` options can be provided. The `-bcc` option works similarly.
 
@@ -57,6 +57,8 @@ There are additional command-line options to configure the sender's name and ema
 
 - Conditionals in template files. E.g. only include a piece of text if a specified column contains "true".
 
-## Known issues
+## Known issues
 
 - Seems to break if an entry in the spreadsheet begins or ends with `"`. In this case, globally replacing `""` with `` ` `` is a bad idea. Will have a think about how to fix, but in the meantime, just avoid cells beginning or ending with `"`.
+
+- Has problems with non-ASCII characters in the CSV data. I blame OCaml's string-escaping functions.
