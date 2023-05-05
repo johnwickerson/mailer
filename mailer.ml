@@ -222,6 +222,7 @@ let main () =
     fprintf ocf "  end tell\n";
     (*fprintf ocf "activate\n";*)
     fprintf ocf "end tell\n";
+    fprintf ocf "return\n";
     close_out oc;
     
     (* Run the generated applescript. *)
